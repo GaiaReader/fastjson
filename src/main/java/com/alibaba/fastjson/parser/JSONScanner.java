@@ -1616,7 +1616,7 @@ public class JSONScanner implements JSONLexer {
         return scanSymbolUnQuoted(symbolTable);
     }
 
-    public final String scanSymbol(final SymbolTable symbolTable, final char quote) {
+    public final String scanSymbol(final SymbolTable symbolTable, final char quote) {//扫描符号表
         int hash = 0;
 
         np = bp;
@@ -1626,16 +1626,16 @@ public class JSONScanner implements JSONLexer {
         for (;;) {
             ch = buf[++bp];
 
-            if (ch == quote) {
+            if (ch == quote) {// 闭合，直接返回
                 break;
             }
 
-            if (ch == EOI) {
+            if (ch == EOI) {// 结束了，代表未闭合
                 throw new JSONException("unclosed.str");
             }
 
-            if (ch == '\\') {
-                if (!hasSpecial) {
+            if (ch == '\\') {// 转义，需要特殊处理
+                if (!hasSpecial) {// 扩容
                     hasSpecial = true;
 
                     if (sp >= sbuf.length) {
@@ -1720,7 +1720,7 @@ public class JSONScanner implements JSONLexer {
         token = LITERAL_STRING;
         this.ch = buf[++bp];
 
-        if (!hasSpecial) {
+        if (!hasSpecial) {// 如果没有遇到过'\'，不用管，反正提取了字符串
             return symbolTable.addSymbol(buf, np + 1, sp, hash);
         } else {
             return symbolTable.addSymbol(sbuf, 0, sp, hash);

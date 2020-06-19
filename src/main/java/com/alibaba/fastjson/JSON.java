@@ -88,7 +88,7 @@ public abstract class JSON implements JSONStreamAware, JSONAware {
         DefaultJSONParser parser = new DefaultJSONParser(text, ParserConfig.getGlobalInstance(), features);
         Object value = parser.parse();
 
-        handleResovleTask(parser, value);
+        handleResovleTask(parser, value);// 似乎是解决$ref等问题
 
         parser.close();
 
@@ -213,7 +213,7 @@ public abstract class JSON implements JSONStreamAware, JSONAware {
     }
 
     public static <T> int handleResovleTask(DefaultJSONParser parser, T value) {
-        if (parser.isEnabled(Feature.DisableCircularReferenceDetect)) {
+        if (parser.isEnabled(Feature.DisableCircularReferenceDetect)) {// 不允许检测循环引用，默认为false
             return 0;
         }
 
@@ -527,22 +527,22 @@ public abstract class JSON implements JSONStreamAware, JSONAware {
             return (JSON) javaObject;
         }
 
-        if (javaObject instanceof Map) {
+        if (javaObject instanceof Map) {// Map
             Map<Object, Object> map = (Map<Object, Object>) javaObject;
 
             JSONObject json = new JSONObject(map.size());
 
             for (Map.Entry<Object, Object> entry : map.entrySet()) {
                 Object key = entry.getKey();
-                String jsonKey = TypeUtils.castToString(key);
-                Object jsonValue = toJSON(entry.getValue());
+                String jsonKey = TypeUtils.castToString(key);// 对于key，强制转换为String，本质为调用toString方法
+                Object jsonValue = toJSON(entry.getValue());// 对于value，认为是对象，直接递归调用toJSON
                 json.put(jsonKey, jsonValue);
             }
 
             return json;
         }
 
-        if (javaObject instanceof Collection) {
+        if (javaObject instanceof Collection) {// 集合
             Collection<Object> collection = (Collection<Object>) javaObject;
 
             JSONArray array = new JSONArray(collection.size());
@@ -585,7 +585,7 @@ public abstract class JSON implements JSONStreamAware, JSONAware {
             JSONObject json = new JSONObject(getters.size());
 
             for (FieldInfo field : getters) {
-                Object value = field.get(javaObject);
+                Object value = field.get(javaObject);// 这里面会调用getXxx  isXxx 或者反射取field
                 Object jsonValue = toJSON(value);
 
                 json.put(field.getName(), jsonValue);

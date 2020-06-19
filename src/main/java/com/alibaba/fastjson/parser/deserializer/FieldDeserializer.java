@@ -51,7 +51,7 @@ public abstract class FieldDeserializer {
         setValue(object, (Object) value);
     }
 
-    public void setValue(Object object, Object value) {
+    public void setValue(Object object, Object value) {// 默认的field反序列化为，如果有method，则调用对应方法，否则直接反射set
         Method method = fieldInfo.getMethod();
         if (method != null) {
             try {

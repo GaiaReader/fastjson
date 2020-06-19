@@ -86,9 +86,9 @@ public class DefaultJSONParser extends AbstractJSONParser {
 
     private final List<ResolveTask>    resolveTaskList   = new ArrayList<ResolveTask>();
 
-    public final static int            NONE              = 0;
-    public final static int            NeedToResolve     = 1;
-    public final static int            TypeNameRedirect  = 2;
+    public final static int            NONE              = 0;// 不需要解析
+    public final static int            NeedToResolve     = 1;// 需要解析
+    public final static int            TypeNameRedirect  = 2;// ????
 
     private int                        resolveStatus     = NONE;
 
@@ -183,7 +183,7 @@ public class DefaultJSONParser extends AbstractJSONParser {
             for (;;) {
                 lexer.skipWhitespace();
                 char ch = lexer.getCurrent();
-                if (isEnabled(Feature.AllowArbitraryCommas)) {
+                if (isEnabled(Feature.AllowArbitraryCommas)) {// 允许任意数量逗号，默认开启
                     while (ch == ',') {
                         lexer.incrementBufferPosition();
                         lexer.skipWhitespace();
@@ -237,7 +237,7 @@ public class DefaultJSONParser extends AbstractJSONParser {
                     key = parse();
                     isObjectKey = true;
                 } else {
-                    if (!isEnabled(Feature.AllowUnQuotedFieldNames)) {
+                    if (!isEnabled(Feature.AllowUnQuotedFieldNames)) {// 允许fieldName不被双引号包裹
                         throw new JSONException("syntax error");
                     }
 
@@ -258,7 +258,7 @@ public class DefaultJSONParser extends AbstractJSONParser {
 
                 lexer.resetStringPosition();
 
-                if (key == "@type") {
+                if (key == "@type") {// 特殊标识符一，@type，指定目标类进行反序列化
                     String typeName = lexer.scanSymbol(symbolTable, '"');
                     Class<?> clazz = TypeUtils.loadClass(typeName);
 
@@ -277,36 +277,36 @@ public class DefaultJSONParser extends AbstractJSONParser {
                         }
                     }
 
-                    this.setResolveStatus(TypeNameRedirect);
+                    this.setResolveStatus(TypeNameRedirect);// TypeNameRedirect是什么意思
 
                     if (this.context != null && !(fieldName instanceof Integer)) {
                         this.popContext();
                     }
-
+                    // 根据指定类，获取反序列化器，然后进行反序列化
                     ObjectDeserializer deserializer = config.getDeserializer(clazz);
                     return deserializer.deserialze(this, clazz, fieldName);
                 }
                 
-                if (key == "$ref") {
+                if (key == "$ref") {// 特殊标识符二，$ref，引用
                     lexer.nextToken(JSONToken.LITERAL_STRING);
                     if (lexer.token() == JSONToken.LITERAL_STRING) {
                         String ref = lexer.stringVal();
                         lexer.nextToken(JSONToken.RBRACE);
 
                         Object refValue = null;
-                        if ("@".equals(ref)) {
+                        if ("@".equals(ref)) {// @ 引用自己
                             if (this.getContext() != null) {
                                 refValue = this.getContext().getObject();
                             }
-                        } else if ("..".equals(ref)) {
+                        } else if ("..".equals(ref)) {// ..  引用父对象   ../.. 引用父对象的父对象
                             ParseContext parentContext = context.getParentContext();
                             if (parentContext.getObject() != null) {
                                 refValue = this.getContext().getObject();
-                            } else {
+                            } else {// 解决不了的，则添加解析任务，后面再解析
                                 addResolveTask(new ResolveTask(parentContext, ref));
                                 setResolveStatus(DefaultJSONParser.NeedToResolve);
                             }
-                        } else if ("$".equals(ref)) {
+                        } else if ("$".equals(ref)) {// $ 引用根对象
                             ParseContext rootContext = context;
                             while (rootContext.getParentContext() != null) {
                                 rootContext = rootContext.getParentContext();
@@ -314,11 +314,11 @@ public class DefaultJSONParser extends AbstractJSONParser {
 
                             if (rootContext.getObject() != null) {
                                 refValue = rootContext.getObject();
-                            } else {
+                            } else {// 解决不了的，则添加解析任务，后面再解析
                                 addResolveTask(new ResolveTask(rootContext, ref));
                                 setResolveStatus(DefaultJSONParser.NeedToResolve);
                             }
-                        } else {
+                        } else {// 解决不了的，则添加解析任务，后面再解析
                             addResolveTask(new ResolveTask(context, ref));
                             setResolveStatus(DefaultJSONParser.NeedToResolve);
                         }
@@ -528,7 +528,7 @@ public class DefaultJSONParser extends AbstractJSONParser {
                         if (obj == null) {
                             value = null;
                         } else {
-                            value = obj.toString();
+                            value = obj.toString();// 这里默认也会调用toString方法
                         }
                     }
 
@@ -1014,24 +1014,24 @@ public class DefaultJSONParser extends AbstractJSONParser {
         return parse(null);
     }
 
-    public Object parse(Object fieldName) {
+    public Object parse(Object fieldName) {// 反序列化根本入口，根据第一个token分发到反序列化不同类型数据
         final JSONLexer lexer = getLexer();
         switch (lexer.token()) {
-            case SET:
+            case SET:// HashSet, e.g.  Set[]
                 lexer.nextToken();
                 HashSet<Object> set = new HashSet<Object>();
                 parseArray(set, fieldName);
                 return set;
-            case TREE_SET:
+            case TREE_SET:// TreeSet是一个不同步的非线程安全的二叉树, e.g. Treeset[]
                 lexer.nextToken();
                 TreeSet<Object> treeSet = new TreeSet<Object>();
                 parseArray(treeSet, fieldName);
                 return treeSet;
-            case LBRACKET:
+            case LBRACKET:// [, 前面三个都调用parseArray，只是分别用不同集合存储罢了
                 JSONArray array = new JSONArray();
                 parseArray(array, fieldName);
                 return array;
-            case LBRACE:
+            case LBRACE:// {，解析对象
                 JSONObject object = new JSONObject();
                 return parseObject(object, fieldName);
             case LITERAL_INT:
@@ -1063,7 +1063,7 @@ public class DefaultJSONParser extends AbstractJSONParser {
             case FALSE:
                 lexer.nextToken();
                 return Boolean.FALSE;
-            case NEW:
+            case NEW:// new Date，没用
                 lexer.nextToken(JSONToken.IDENTIFIER);
 
                 if (lexer.token() != JSONToken.IDENTIFIER) {

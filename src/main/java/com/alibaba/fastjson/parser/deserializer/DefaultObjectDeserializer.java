@@ -351,19 +351,19 @@ public class DefaultObjectDeserializer implements ObjectDeserializer {
             return deserialze(parser, (Class<T>) type);
         }
 
-        if (type instanceof ParameterizedType) {
+        if (type instanceof ParameterizedType) {// 泛型参数类，表示一种参数化的类型，比如Collection
             return (T) deserialze(parser, (ParameterizedType) type, fieldName);
         }
 
-        if (type instanceof TypeVariable) {
+        if (type instanceof TypeVariable) {// 表示一种元素类型是参数化类型或者类型变量的数组类型
             return (T) parser.parse(fieldName);
         }
 
-        if (type instanceof WildcardType) {
+        if (type instanceof WildcardType) {// 代表一种通配符类型表达式，比如?， List<?>，List<? extends Number>，List<? super Number>
             return (T) parser.parse(fieldName);
         }
         
-        if (type instanceof GenericArrayType) {
+        if (type instanceof GenericArrayType) {// 表示一种元素类型是参数化类型或者类型变量的数组类型
             Type componentType = ((GenericArrayType) type).getGenericComponentType();
             List<Object> list = new ArrayList<Object>();
             parser.parseArray(componentType, list);

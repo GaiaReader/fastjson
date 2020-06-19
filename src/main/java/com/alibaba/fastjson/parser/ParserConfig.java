@@ -257,12 +257,12 @@ public class ParserConfig {
     }
 
     public ObjectDeserializer getDeserializer(Type type) {
-        ObjectDeserializer derializer = this.derializers.get(type);
+        ObjectDeserializer derializer = this.derializers.get(type);// ParseConfig.derializer缓存类型及其反序列化器，直接从存储于中查找
         if (derializer != null) {
             return derializer;
         }
 
-        if (type instanceof Class<?>) {
+        if (type instanceof Class<?>) {// 如果该类不存在对应的反序列化器，则创建并添加到缓存中
             return getDeserializer((Class<?>) type, type);
         }
 
@@ -285,7 +285,7 @@ public class ParserConfig {
             return derializer;
         }
         
-        final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();// SPI机制，可以通过实现com.alibaba.fastjson.parser.deserializer.AutowiredObjectDeserializer接口，指定特定类型的反序列化器
         for (AutowiredObjectDeserializer autowired : ServiceLoader.load(AutowiredObjectDeserializer.class, classLoader)) {
             for (Type forType : autowired.getAutowiredFor()) {
                 derializers.put(forType, autowired);
@@ -319,7 +319,7 @@ public class ParserConfig {
         } else if (Throwable.class.isAssignableFrom(clazz)) {
             derializer = new ThrowableDeserializer(this, clazz);
         } else {
-            derializer = createJavaBeanDeserializer(clazz);
+            derializer = createJavaBeanDeserializer(clazz);// JavaBean反序列化器，最后
         }
 
         putDeserializer(type, derializer);
@@ -328,20 +328,20 @@ public class ParserConfig {
     }
 
     public ObjectDeserializer createJavaBeanDeserializer(Class<?> clazz) {
-        if (clazz == Class.class) {
+        if (clazz == Class.class) {// 如果类是java.lang.Class，则返回默认反序列化器，默认反序列化器
             return this.defaultSerializer;
         }
 
-        boolean asmEnable = this.asmEnable;
-        if (asmEnable && !Modifier.isPublic(clazz.getModifiers())) {
+        boolean asmEnable = this.asmEnable;// 默认为true，如果反序列化的类及其成员变量的类不是public，则设置为false
+        if (asmEnable && !Modifier.isPublic(clazz.getModifiers())) {// 如果类不是Public的，则asmEnable为false
             asmEnable = false;
         }
         
-        if (clazz.getTypeParameters().length != 0) {
+        if (clazz.getTypeParameters().length != 0) {// 如果类有类型参数，则asmEnable为false
             asmEnable = false;
         }
         
-        if (ASMClassLoader.isExternalClass(clazz)) {
+        if (ASMClassLoader.isExternalClass(clazz)) {// 查找classloader，如果不是当前线程的classloader？？？，则是externalClass
             asmEnable = false;
         }
         
@@ -349,31 +349,31 @@ public class ParserConfig {
             DeserializeBeanInfo beanInfo = DeserializeBeanInfo.computeSetters(clazz);
             for (FieldInfo fieldInfo : beanInfo.getFieldList()) {
                 Class<?> fieldClass = fieldInfo.getFieldClass();
-                if (!Modifier.isPublic(fieldClass.getModifiers())) {
+                if (!Modifier.isPublic(fieldClass.getModifiers())) {//如果反序列化的类的field的类不是public，则设置asmEnable为false
                     asmEnable = false;
                     break;
                 }
                 
-                if (fieldClass.isMemberClass() && !Modifier.isStatic(fieldClass.getModifiers())) {
+                if (fieldClass.isMemberClass() && !Modifier.isStatic(fieldClass.getModifiers())) {// 查找classloader，如果不是当前线程的classloader？？？，则是externalClass
                     asmEnable = false;
                 }
             }
         }
         
         if (asmEnable) {
-            if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {
+            if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {// 非static成员类
                 asmEnable = false;
             }
         }
 
-        if (!asmEnable) {
+        if (!asmEnable) {// 这两个有什么不同呢？
             return new JavaBeanDeserializer(this, clazz);
         }
 
         try {
-            return ASMDeserializerFactory.getInstance().createJavaBeanDeserializer(this, clazz);
+            return ASMDeserializerFactory.getInstance().createJavaBeanDeserializer(this, clazz);// 这个是高速方案
         } catch (ASMException asmError) {
-        	return new JavaBeanDeserializer(this, clazz);
+        	return new JavaBeanDeserializer(this, clazz);// 这个是保底方案，
         } catch (Exception e) {
             throw new JSONException("create asm deserializer error, " + clazz.getName(), e);
         }
@@ -395,11 +395,11 @@ public class ParserConfig {
         }
 
         if (!asmEnable) {
-            return createFieldDeserializerWithoutASM(mapping, clazz, fieldInfo);
+            return createFieldDeserializerWithoutASM(mapping, clazz, fieldInfo);// 保底的
         }
 
         try {
-            return ASMDeserializerFactory.getInstance().createFieldDeserializer(mapping, clazz, fieldInfo);
+            return ASMDeserializerFactory.getInstance().createFieldDeserializer(mapping, clazz, fieldInfo);// 快速的
         } catch (Throwable e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

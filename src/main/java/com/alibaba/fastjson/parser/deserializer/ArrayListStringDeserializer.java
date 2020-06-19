@@ -88,7 +88,7 @@ public class ArrayListStringDeserializer implements ObjectDeserializer {
                 if (obj == null) {
                     value = null;
                 } else {
-                    value = obj.toString();
+                    value = obj.toString();// 这里会调用解析后的object的toString方法，不过一般toString方法也不会有敏感操作就是了
                 }
             }
 

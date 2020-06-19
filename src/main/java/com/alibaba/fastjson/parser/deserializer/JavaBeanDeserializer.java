@@ -204,7 +204,7 @@ public class JavaBeanDeserializer implements ObjectDeserializer {
                         String typeName = lexer.stringVal();
                         lexer.nextToken(JSONToken.COMMA);
                         
-                        if (type instanceof Class && typeName.equals(((Class<?>)type).getName())) {
+                        if (type instanceof Class && typeName.equals(((Class<?>)type).getName())) {// type instanceof Class 没办法控制，这意味着这里判断会失败
                             if (lexer.token() == JSONToken.RBRACE) {
                                 lexer.nextToken();
                                 break;
@@ -212,7 +212,7 @@ public class JavaBeanDeserializer implements ObjectDeserializer {
                             continue;
                         }
                         
-                        Class<?> userType = TypeUtils.loadClass(typeName);
+                        Class<?> userType = TypeUtils.loadClass(typeName);// 失败后直接把目标type改为用户指定的类型
                         ObjectDeserializer deserizer = parser.getConfig().getDeserializer(userType);
                         return (T) deserizer.deserialze(parser, userType, fieldName);
                     } else {

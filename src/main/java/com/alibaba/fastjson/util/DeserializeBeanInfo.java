@@ -76,15 +76,15 @@ public class DeserializeBeanInfo {
         return true;
     }
 
-    public static DeserializeBeanInfo computeSetters(Class<?> clazz) {
+    public static DeserializeBeanInfo computeSetters(Class<?> clazz) {// 计算setter
         DeserializeBeanInfo beanInfo = new DeserializeBeanInfo(clazz);
 
-        Constructor<?> defaultConstructor = getDefaultConstructor(clazz);
+        Constructor<?> defaultConstructor = getDefaultConstructor(clazz);// 默认构造函数
         if (defaultConstructor != null) {
-            defaultConstructor.setAccessible(true);
+            defaultConstructor.setAccessible(true);// 如果找到，无论是否accessible
             beanInfo.setDefaultConstructor(defaultConstructor);
-        } else if (defaultConstructor == null && !(clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers()))) {
-            Constructor<?> creatorConstructor = getCreatorConstructor(clazz);
+        } else if (defaultConstructor == null && !(clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers()))) {// 如果找不到默认构造函数，且非接口非抽象
+            Constructor<?> creatorConstructor = getCreatorConstructor(clazz);// fastjson可以通过@JSONCreator注解来标识，这一部分需要手动指定，不在分析范围内
             if (creatorConstructor != null) {
                 creatorConstructor.setAccessible(true);
                 beanInfo.setCreatorConstructor(creatorConstructor);
@@ -114,8 +114,8 @@ public class DeserializeBeanInfo {
                 }
                 return beanInfo;
             }
-
-            Method factoryMethod = getFactoryMethod(clazz);
+            // OK，没有使用JSONCreator注解，默认到达这里
+            Method factoryMethod = getFactoryMethod(clazz);// 获取工厂方法，需要手动在工厂方法中添加@JSONCreator注解
             if (factoryMethod != null) {
                 factoryMethod.setAccessible(true);
                 beanInfo.setFactoryMethod(factoryMethod);
@@ -146,10 +146,10 @@ public class DeserializeBeanInfo {
                 return beanInfo;
             }
             
-            throw new JSONException("default constructor not found. " + clazz);
+            throw new JSONException("default constructor not found. " + clazz);// 所以，没有默认构造方法，非接口非抽象，是抛出异常的，
         }
 
-        for (Method method : clazz.getMethods()) {
+        for (Method method : clazz.getMethods()) {// public 方法
             String methodName = method.getName();
             if (methodName.length() < 4) {
                 continue;
@@ -160,17 +160,17 @@ public class DeserializeBeanInfo {
             }
 
             // support builder set
-            if (!(method.getReturnType().equals(Void.TYPE) || method.getReturnType().equals(clazz))) {
+            if (!(method.getReturnType().equals(Void.TYPE) || method.getReturnType().equals(clazz))) {// 仅允许返回值为void或当前类
                 continue;
             }
 
-            if (method.getParameterTypes().length != 1) {
+            if (method.getParameterTypes().length != 1) {// 入参数量必须为1
                 continue;
             }
 
             JSONField annotation = method.getAnnotation(JSONField.class);
 
-            if (annotation != null) {
+            if (annotation != null) {// JSONField标记，非默认，不分析
                 if (!annotation.deserialize()) {
                     continue;
                 }
@@ -183,13 +183,13 @@ public class DeserializeBeanInfo {
                 }
             }
 
-            if (methodName.startsWith("set") && Character.isUpperCase(methodName.charAt(3))) {
+            if (methodName.startsWith("set") && Character.isUpperCase(methodName.charAt(3))) {// 形如setAbc，则属性名为abc
                 String propertyName = Character.toLowerCase(methodName.charAt(3)) + methodName.substring(4);
 
                 Field field = getField(clazz, propertyName);
                 if (field != null) {
 
-                    JSONField fieldAnnotation = field.getAnnotation(JSONField.class);
+                    JSONField fieldAnnotation = field.getAnnotation(JSONField.class);// 如果有指定JSONField，则beanInfo添加fieldinfo与field进行绑定
 
                     if (fieldAnnotation != null && fieldAnnotation.name().length() != 0) {
                         propertyName = fieldAnnotation.name();
@@ -200,16 +200,16 @@ public class DeserializeBeanInfo {
                 }
 
                 beanInfo.add(new FieldInfo(propertyName, method, null));
-                method.setAccessible(true);
+                method.setAccessible(true);// 奇怪，getMethods应该就已经是public方法了吧，这里再setAccessible为了什么
             }
         }
 
-        for (Field field : clazz.getFields()) {
-            if (Modifier.isStatic(field.getModifiers())) {
+        for (Field field : clazz.getFields()) {// 遍历field，all accessible public fields
+            if (Modifier.isStatic(field.getModifiers())) {// 非static
                 continue;
             }
 
-            if (!Modifier.isPublic(field.getModifiers())) {
+            if (!Modifier.isPublic(field.getModifiers())) {// 这个还有不满足的么？
                 continue;
             }
             
@@ -225,7 +225,7 @@ public class DeserializeBeanInfo {
                 continue;
             }
 
-            beanInfo.add(new FieldInfo(field.getName(), null, field));
+            beanInfo.add(new FieldInfo(field.getName(), null, field));// 如果前面没有添加，则加一个mthod=null的field
         }
 
         return beanInfo;
@@ -245,7 +245,7 @@ public class DeserializeBeanInfo {
         }
 
         Constructor<?> defaultConstructor = null;
-        for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {
+        for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {// 无参构造函数
             if (constructor.getParameterTypes().length == 0) {
                 defaultConstructor = constructor;
                 break;
@@ -253,8 +253,8 @@ public class DeserializeBeanInfo {
         }
         
         if (defaultConstructor == null) {
-            if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {
-                for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {
+            if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {// 类是成员类，且非静态类（成员类：作为类的成员存在于某个类的内部，静态类：作为类的静态成员存在于某个类的内部）
+                for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {// 对于这种情况，允许参数为当前类的构造方式
                     if (constructor.getParameterTypes().length == 1 && constructor.getParameterTypes()[0].equals(clazz.getDeclaringClass())) {
                         defaultConstructor = constructor;
                         break;

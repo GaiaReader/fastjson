@@ -66,9 +66,9 @@ public class BooleanFieldDeserializer extends FieldDeserializer {
             return;
         }
 
-        Object obj = parser.parse();
+        Object obj = parser.parse();// 竟然有解析为对象，然后强制转换
 
-        value = TypeUtils.castToBoolean(obj);
+        value = TypeUtils.castToBoolean(obj);// 可以理解为允许字符串 "true" "false" "1"等
 
         if (value == null && getFieldClass() == boolean.class) {
             // skip

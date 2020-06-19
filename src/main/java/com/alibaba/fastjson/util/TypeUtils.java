@@ -724,26 +724,26 @@ public class TypeUtils {
             return null;
         }
         
-        Class<?> clazz = mappings.get(className);
+        Class<?> clazz = mappings.get(className);// 默认mappings中只有16个，都是基本类型。直接从mapping中取
         
         if (clazz != null) {
             return clazz;
         }
         
-        if (className.charAt(0) == '[') {
+        if (className.charAt(0) == '[') {// 如果第一个字符为[ 则组件类型为 [ 字符之后的字符串
             Class<?> componentType = loadClass(className.substring(1));
             return Array.newInstance(componentType, 0).getClass();
         }
         
         try {
-            clazz = Thread.currentThread().getContextClassLoader().loadClass(className);
+            clazz = Thread.currentThread().getContextClassLoader().loadClass(className);// classloader直接loadClass
             return clazz;
         } catch (Throwable e) {
             // skip
         }
 
         try {
-            clazz = Class.forName(className);
+            clazz = Class.forName(className);// 反射查找
             return clazz;
         } catch (Throwable e) {
             // skip
@@ -762,15 +762,15 @@ public class TypeUtils {
         for (Method method : clazz.getMethods()) {
             String methodName = method.getName();
 
-            if (Modifier.isStatic(method.getModifiers())) {
+            if (Modifier.isStatic(method.getModifiers())) {// 不允许是static方法
                 continue;
             }
 
-            if (method.getReturnType().equals(Void.TYPE)) {
+            if (method.getReturnType().equals(Void.TYPE)) {// 需要不返回void
                 continue;
             }
 
-            if (method.getParameterTypes().length != 0) {
+            if (method.getParameterTypes().length != 0) {// 入参数量必须为0
                 continue;
             }
 
@@ -796,22 +796,22 @@ public class TypeUtils {
                 }
             }
 
-            if (methodName.startsWith("get")) {
+            if (methodName.startsWith("get")) {// get开头
                 if (methodName.length() < 4) {
                     continue;
                 }
 
-                if (methodName.equals("getClass")) {
+                if (methodName.equals("getClass")) {// 不允许调用getClass
                     continue;
                 }
 
-                if (!Character.isUpperCase(methodName.charAt(3))) {
+                if (!Character.isUpperCase(methodName.charAt(3))) {// getX  X为大写
                     continue;
                 }
 
                 String propertyName = Character.toLowerCase(methodName.charAt(3)) + methodName.substring(4);
                 
-                boolean ignore = isJSONTypeIgnore(clazz, propertyName);
+                boolean ignore = isJSONTypeIgnore(clazz, propertyName);// 判断下是否被使用注解指定忽略
                 
                 if (ignore) {
                     continue;
@@ -843,12 +843,12 @@ public class TypeUtils {
                 fieldInfoMap.put(propertyName, new FieldInfo(propertyName, method, field));
             }
 
-            if (methodName.startsWith("is")) {
+            if (methodName.startsWith("is")) {// is 开头
                 if (methodName.length() < 3) {
                     continue;
                 }
 
-                if (!Character.isUpperCase(methodName.charAt(2))) {
+                if (!Character.isUpperCase(methodName.charAt(2))) {// 第三个字符为大写
                     continue;
                 }
 
@@ -881,12 +881,12 @@ public class TypeUtils {
             }
         }
 
-        for (Field field : clazz.getFields()) {
-            if (Modifier.isStatic(field.getModifiers())) {
+        for (Field field : clazz.getFields()) {// 直接反射fields
+            if (Modifier.isStatic(field.getModifiers())) {// 不允许static
                 continue;
             }
 
-            if (!Modifier.isPublic(field.getModifiers())) {
+            if (!Modifier.isPublic(field.getModifiers())) {// 必须public
                 continue;
             }
 
